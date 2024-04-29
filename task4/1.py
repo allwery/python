@@ -1,10 +1,10 @@
-def is_valid_email(email):
-    username, domain = email.split('@')
+def true_email(email):
+    user, domain = email.split('@')
 
-    if not username or not domain:
+    if not user or not domain:
         return False
 
-    for char in username:
+    for char in user:
         if not char.isalnum() and char not in '-_.':
             return False
 
@@ -20,14 +20,14 @@ def is_valid_email(email):
     return True
 
 def validate_email(email):
-    if not is_valid_email(email):
+    if not true_email(email):
         raise ValueError("Некорректный адрес электронной почты")
     return email
 
-email_address = input("Введите адрес электронной почты: ")
+email_addr = input("Введите адрес электронной почты: ")
 
 try:
-    validated_email = validate_email(email_address)
+    validated_email = validate_email(email_addr)
     print("Адрес электронной почты корректен:", validated_email)
 except ValueError as e:
     print("Ошибка:", e)
