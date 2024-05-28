@@ -1,0 +1,49 @@
+{% extends 'Music/layout.html'%} {%block title %}Задание 1 {%endblock %}
+{%block content%} 
+<head>
+    <meta charset="UTF-8">
+    <title>{{ instance.name }}</title>
+    <style>
+    a {
+        text-decoration:none;
+        color: #ffed00;
+    }
+    .div-container:hover { text-decoration:none; }
+    .ite:hover { text-decoration: underline; }
+    body {
+        background-color: #48d1cc;
+    }
+        h1 {
+        color: #f5f5dc;
+        }
+	.text {
+	font-size: 22px;
+	color: #ffed00;
+	}
+	.relo {
+	color: #f5f5dc;
+	font-size: 25px;
+	}
+	.but {
+	font-size: 25px;
+	}
+	body {
+	justify-content: center;
+	text-align:center;
+	margin: auto;
+	}
+    </style>
+</head>
+
+    <h1> {{instance.name}} </h1>
+    <div class="text">
+        <p>Дата проведения: {{instance.date_concert}}</p>
+        <p>Место: {{instance.place}}</p>
+        <p>Певец: {{instance.singer}}</p>
+    </div>
+    <br>
+<form action = "../../">
+                    <input type = "submit" value = "ОК" class="but">
+                </form>
+
+{% endblock%}

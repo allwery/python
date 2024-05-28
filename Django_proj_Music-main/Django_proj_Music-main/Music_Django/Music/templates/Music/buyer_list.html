@@ -1,0 +1,44 @@
+{% extends 'Music/layout.html'%} {%block title %}Задание 1 {%endblock %}
+{%block content%} 
+    <style>
+    a {
+        text-decoration:none;
+        color: #ffed00;
+    }
+    .div-container:hover { text-decoration:none; }
+    .ite:hover { text-decoration: underline; }
+    body {
+        background-color: #48d1cc;
+    }
+        h1 {
+        color: #f5f5dc;
+        }
+	.text {
+	font-size: 22px;
+	color: #ffed00;
+	}
+	.relo {
+	color: #f5f5dc;
+	font-size: 25px;
+	}
+	.but {
+	font-size: 25px;
+	}
+	body {
+	justify-content: center;
+	text-align:center;
+	margin: auto;
+	}
+    </style>
+<body>
+
+    <h1> Покупатели </h1>
+    <div class="text">
+    {% for i in queryset %}
+        <div>
+            <a href="/Music/details/{{i.id}}/" class="ite"> <h2> {{ i.first_name }} </h2> </a>
+        </div>
+    {% endfor %}
+    </div>
+</body>
+{% endblock%}
