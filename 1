@@ -1,0 +1,25 @@
+import re 
+def insert_words(input_file, output_file, sentence): 
+    with open(input_file, 'r', encoding='utf-8') as f_in, open(output_file, 'w', encoding='utf-8') as f_out: 
+        text = f_in.read() 
+        count = 0 
+        words = sentence.split() 
+        word_index = 0 
+        result = [] 
+        for word in text.split(): 
+            if re.match(r'^(я|ты|он|она|оно|мы|они|вы)$', word, re.IGNORECASE): 
+                result.append(word) 
+                count += 1 
+                if word_index < len(words): 
+                    result.append(words[word_index]) 
+                    word_index += 1 
+            else:
+                result.append(word) 
+        f_out.write(' '.join(result)) 
+        print(f"Kol-vo: {count}") 
+
+input_file = 'Z:/input.txt' 
+output_file = 'Z:/output.txt' 
+sentence = "я хочу получить пять" 
+
+insert_words(input_file, output_file, sentence) 
