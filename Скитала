@@ -1,0 +1,37 @@
+def sc_encrypt(text, diameter):
+
+    text = text.replace(" ", "").upper()
+    n = len(text)
+
+    rows = (n + diameter - 1) // diameter
+    encrypted_text = ""
+
+    for col in range(diameter):
+        for row in range(rows):
+            index = row * diameter + col
+            if index < n:
+                encrypted_text += text[index]
+
+    return encrypted_text
+def sc_decrypt(text, diameter):
+    n = len(text)
+    rows = (n + diameter - 1) // diameter
+    decrypted_text = [""] * n
+
+    for col in range(diameter):
+        for row in range(rows):
+            index = row * diameter + col
+            if index < n:
+                decrypted_text[index] = text[(col) * (rows) + row]
+
+    return ''.join(decrypted_text)
+
+
+text = "Hello world my friends!"
+diameter = 4
+print("Изначальный текст:", text)
+En_text = sc_encrypt(text, diameter)
+print("Зашифрованный текст:", En_text)
+
+decrypted_text = sc_decrypt(En_text, diameter)
+print("Расшифрованный текст:", decrypted_text)
