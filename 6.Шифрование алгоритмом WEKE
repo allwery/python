@@ -1,0 +1,49 @@
+import struct
+
+def _generate_s_box():
+    """Создает S-блок (таблицу подстановки)."""
+    return [(i << 24) | (i << 16) | (i << 8) | i for i in range(256)]
+
+def _update_registers(r3, r4, r5, r6):
+    """Обновляет регистры."""
+    r3 = (r3 + r5) & 0xFFFFFFFF
+    r4 = (r4 + r6) & 0xFFFFFFFF
+    r5 = (r5 + r3) & 0xFFFFFFFF
+    r6 = (r6 + r4) & 0xFFFFFFFF
+    return r3, r4, r5, r6
+
+def _generate_keystream(key, length, s_box):
+    """Генерирует ключевой поток."""
+    r3, r4, r5, r6 = key
+    keystream = []
+    for _ in range(length):
+        r3, r4, r5, r6 = _update_registers(r3, r4, r5, r6)
+        key_byte = (s_box[(r3 >> 24) & 0xFF] ^
+                    s_box[(r4 >> 16) & 0xFF] ^
+                    s_box[(r5 >> 8) & 0xFF] ^
+                    s_box[r6 & 0xFF])
+        keystream.append(key_byte)
+    return keystream
+
+def wake_cipher(data, key):
+    """Шифрует/дешифрует данные."""
+    s_box = _generate_s_box()
+    padding_length = (4 - len(data) % 4) % 4
+    data += b'\0' * padding_length
+    data = bytearray(data)
+    keystream = _generate_keystream(key, len(data) // 4, s_box)
+    for i in range(0, len(data), 4):
+        block = struct.unpack('>I', data[i:i+4])[0]
+        block ^= keystream[i // 4]
+        data[i:i+4] = struct.pack('>I', block)
+    return bytes(data).rstrip(b'\0')
+
+if __name__ == "__main__":
+    key = (0x12345678, 0x23456789, 0x34567890, 0x45678901)
+    plaintext = input('Введите текст').encode('utf-8')
+    ciphertext = wake_cipher(plaintext, key)
+    decrypted = wake_cipher(ciphertext, key).decode('utf-8')
+
+    print("Исходный текст:", plaintext.decode('utf-8'))
+    print("Зашифрованный текст:", ciphertext)
+    print("Расшифрованный текст:", decrypted)
