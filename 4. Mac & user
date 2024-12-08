@@ -1,0 +1,64 @@
+import os
+import subprocess
+import platform
+
+# Функция для получения текущего имени пользователя
+def get_username():
+    return os.getlogin()
+
+# Функция для получения MAC-адреса
+def get_mac_address():
+    system = platform.system()
+    if system == "Windows":
+        try:
+            result = subprocess.check_output("getmac", shell=True, text=True)
+            lines = result.splitlines()
+            for line in lines:
+                if "Physical Address" in line:
+                    mac_address = line.split(":")[1].strip()
+                    return mac_address
+            return None  # MAC-адрес не найден
+        except Exception as e:
+            print(f"Ошибка при получении MAC-адреса (Windows): {e}")
+            return None
+    elif system == "Linux":
+        try:
+            # Для разных дистрибутивов Linux могут потребоваться разные команды.
+            # Эта команда работает для многих, но может не работать для всех.
+            result = subprocess.check_output(["ip", "link", "show"], shell=False, text=True)
+            for line in result.splitlines():
+                if "ether" in line:
+                    mac_address = line.split()[1].split(":")[0]  # Извлекаем MAC-адрес
+                    return mac_address
+            return None
+        except Exception as e:
+            print(f"Ошибка при получении MAC-адреса (Linux): {e}")
+            return None
+    else: # macOS и другие системы
+        print("Получение MAC-адреса не поддерживается на этой операционной системе.")
+        return None
+
+
+# Функция для проверки компьютера по имени пользователя и MAC-адресу
+def check_computer(username_ref, mac_ref):
+    current_username = get_username()
+    current_mac = get_mac_address()
+
+    if current_username == username_ref and current_mac == mac_ref:
+        print("Программа запущена на разрешенном компьютере.")
+        return True
+    else:
+        print("Ошибка: Я вас не знаю.")
+        return False
+
+# Эталонные значения имени пользователя и MAC-адреса (их нужно сохранить при первой настройке)
+username_reference = "vadik"
+mac_reference = "E4:42:A6:24:AC:D3" # Замените на ваш MAC-адрес
+
+
+if check_computer(username_reference, mac_reference):
+    # Основная логика программы
+    print("Доступ разрешен, программа выполняется...")
+else:
+    # Выход из программы
+    print("Доступ запрещен.")
