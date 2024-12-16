@@ -1,0 +1,90 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import Perceptron as SkPerceptron
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
+# Определение функции активации ELU и ее производной
+def elu(x, alpha=1.0):
+    return np.where(x >= 0, x, alpha * (np.exp(x) - 1))
+
+def elu_derivative(x, alpha=1.0):
+    return np.where(x >= 0, 1, alpha * np.exp(x))
+
+# Определение класса NeuronELU
+class NeuronELU:
+    def __init__(self, w=None, b=0):
+        """
+        :param w: вектор весов
+        :param b: смещение
+        """
+        self.w = w
+        self.b = b
+
+    def activate(self, x):
+        # Используем ELU для активации
+        return elu(np.dot(x, self.w) + self.b)
+
+    def forward_pass(self, X):
+        """
+        Рассчитывает ответ нейрона для представления набора объектов
+        :param X: матрица примеров размера (n, m), каждая строка - отдельный объект
+        :return: вектор размера (n, 1) с ответами нейрона
+        """
+        return self.activate(X)
+
+    def backward_pass(self, X, y, y_pred, learning_rate=0.005):
+        """
+        Обновляет значения весов нейрона в соответствии с этим объектом
+        :param X: матрица входов размера (n, m)
+        :param y: вектор правильных ответов размера (n, 1)
+        :param y_pred: вектор предсказанных ответов размера (n, 1)
+        :param learning_rate: "скорость обучения"
+        """
+        n = len(y)
+        delta = (y_pred - y) * elu_derivative(np.dot(X, self.w) + self.b)
+        self.w -= learning_rate * np.dot(X.T, delta) / n
+        self.b -= learning_rate * np.sum(delta) / n
+
+    def fit(self, X, y, num_epochs=300):
+        """
+        Спускаемся в минимум
+        :param X: матрица объектов размера (n, m)
+        :param y: вектор правильных ответов размера (n, 1)
+        :param num_epochs: количество итераций обучения
+        :return: losses - вектор значений функции потерь на различных итерациях обновления весов
+        """
+        losses = []
+        for i in range(num_epochs):
+            y_pred = self.forward_pass(X)
+            loss = np.mean((y_pred - y) ** 2)
+            losses.append(loss)
+            self.backward_pass(X, y, y_pred)
+        return losses
+
+# Загрузка данных и их предобработка
+data_path = 'data/voice.csv'
+data = pd.read_csv(data_path)
+data['label'] = data['label'].apply(lambda x: 1 if x == 'male' else 0)
+data = data.sample(frac=1, random_state=42)  # Перемешиваем данные
+
+# Разделение данных на обучающую и тестовую выборки
+X = data.iloc[:, :-1].values
+y = data['label'].values.reshape((-1, 1))
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Сравнение перцептрона из sklearn
+sk_perceptron = SkPerceptron(random_state=42)
+sk_perceptron.fit(X_train, y_train.ravel())
+accuracy_sklearn = accuracy_score(y_test, sk_perceptron.predict(X_test))
+print(f'Точность перцептрона из sklearn: {accuracy_sklearn:.2f} ')
+
+# Сравнение вашего перцептрона NeuronELU
+neuron = NeuronELU(w=np.random.rand(X.shape[1], 1), b=np.random.rand(1))
+Loss_values = neuron.fit(X_train, y_train, num_epochs=1000)
+
+# Прогнозы и точность
+y_pred_custom = neuron.forward_pass(X_test) > 0.5
+accuracy_custom = accuracy_score(y_test, y_pred_custom) 
+print(f'Точность вашего перцептрона: {accuracy_custom:.2f} ')
