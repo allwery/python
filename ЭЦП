@@ -1,152 +1,131 @@
 import hashlib
-from tkinter import Tk, Label, Entry, Button, Text, END
+from tkinter import Tk, Label, Entry, Button, Text, END, Frame, messagebox
 
+class CryptoApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("ЭЦП и Шифрование")
 
-# Функция для расчёта Y
-def calculate_y(x, d, w):
-    return (x % 100) * d + w
+        self.create_widgets()
 
+    def calculate_y(self, x, d, w):
+        return (x % 100) * d + w
 
-# Упрощённое шифрование сообщения (символы преобразуются по ключу)
-def encrypt_message(message, key):
-    encrypted = ''.join(chr(ord(char) + key) for char in message)
-    return encrypted
+    def encrypt_message(self, message, key):
+        return ''.join(chr(ord(char) + key) for char in message)
 
+    def decrypt_message(self, message, key):
+        return ''.join(chr(ord(char) - key) for char in message)
 
-# Упрощённое дешифрование сообщения
-def decrypt_message(message, key):
-    decrypted = ''.join(chr(ord(char) - key) for char in message)
-    return decrypted
+    def create_signature(self, message, key):
+        hashed = hashlib.sha256((message.strip() + str(key)).encode()).hexdigest()
+        print(f"[DEBUG] Созданная подпись: {hashed}")
+        return hashed
 
+    def verify_signature(self, message, key, signature):
+        expected_signature = hashlib.sha256((message.strip() + str(key)).encode()).hexdigest()
+        print(f"[DEBUG] Ожидаемая подпись: {expected_signature}")
+        print(f"[DEBUG] Предоставленная подпись: {signature}")
+        return expected_signature == signature
 
-# Функция для создания подписи
-def create_signature(message, key):
-    hashed = hashlib.sha256((message.strip() + str(key)).encode()).hexdigest()
-    print(f"[DEBUG] Созданная подпись: {hashed}")
-    return hashed
-
-
-# Функция для проверки подписи
-def verify_signature(message, key, signature):
-    expected_signature = hashlib.sha256((message.strip() + str(key)).encode()).hexdigest()
-    print(f"[DEBUG] Ожидаемая подпись: {expected_signature}")
-    print(f"[DEBUG] Предоставленная подпись: {signature}")
-    return expected_signature == signature
-
-
-# Интерфейс приложения
-def run_app():
-    def calculate():
+    def calculate(self):
         try:
-            x = int(entry_x.get())
-            d = int(entry_d.get())
-            w = int(entry_w.get())
-            y = calculate_y(x, d, w)
-            label_y_result['text'] = f"Рассчитанное значение Y: {y}"
+            x = int(self.entry_x.get())
+            d = int(self.entry_d.get())
+            w = int(self.entry_w.get())
+            y = self.calculate_y(x, d, w)
+            self.label_y_result['text'] = f"Рассчитанное значение Y: {y}"
         except ValueError:
-            label_y_result['text'] = "Ошибка: Проверьте входные данные!"
+            self.label_y_result['text'] = "Ошибка: Проверьте входные данные!"
 
-    def process_message():
-        message = text_message.get("1.0", END).strip()
+    def process_message(self):
+        message = self.text_message.get("1.0", END).strip()
         try:
-            key = int(entry_key.get())
-
-            # Создаём подпись ДО шифрования
-            signature = create_signature(message, key)
-            entry_signature.delete(0, END)
-            entry_signature.insert(END, signature)
-
-            # Шифруем сообщение
-            encrypted = encrypt_message(message, key)
-            text_encrypted.delete("1.0", END)
-            text_encrypted.insert(END, encrypted)
-
+            key = int(self.entry_key.get())
+            signature = self.create_signature(message, key)
+            self.entry_signature.delete(0, END)
+            self.entry_signature.insert(END, signature)
+            encrypted = self.encrypt_message(message, key)
+            self.text_encrypted.delete("1.0", END)
+            self.text_encrypted.insert(END, encrypted)
             print(f"[DEBUG] Исходное сообщение: {message}")
             print(f"[DEBUG] Зашифрованное сообщение: {encrypted}")
             print(f"[DEBUG] Ключ: {key}")
-
         except ValueError:
-            label_verification['text'] = "Ошибка: Неверный ключ!"
+            self.label_verification['text'] = "Ошибка: Неверный ключ!"
 
-    def verify_and_decrypt():
-        encrypted = text_encrypted.get("1.0", END).strip()
+    def verify_and_decrypt(self):
+        encrypted = self.text_encrypted.get("1.0", END).strip()
         try:
-            key = int(entry_key.get())
-            signature = entry_signature.get()
-
-            # Расшифровка сообщения
-            message = decrypt_message(encrypted, key)
+            key = int(self.entry_key.get())
+            signature = self.entry_signature.get()
+            message = self.decrypt_message(encrypted, key)
             print(f"[DEBUG] Расшифрованное сообщение: {message}")
-
-            # Проверяем подпись
-            is_valid = verify_signature(message, key, signature)
-            label_verification['text'] = f"Подпись корректна: {is_valid}"
-
-            # Отображаем результат
+            is_valid = self.verify_signature(message, key, signature)
+            self.label_verification['text'] = f"Подпись корректна: {is_valid}"
             if is_valid:
-                text_decrypted.delete("1.0", END)
-                text_decrypted.insert(END, message)
+                self.text_decrypted.delete("1.0", END)
+                self.text_decrypted.insert(END, message)
             else:
-                text_decrypted.delete("1.0", END)
-                text_decrypted.insert(END, "Подпись некорректна. Сообщение не может быть расшифровано.")
+                self.text_decrypted.delete("1.0", END)
+                self.text_decrypted.insert(END, "Подпись некорректна. Сообщение не может быть расшифровано.")
         except ValueError:
-            label_verification['text'] = "Ошибка: Неверный ключ!"
+            self.label_verification['text'] = "Ошибка: Неверный ключ!"
 
-    # Создание окна
+    def create_widgets(self):
+        frame_y = Frame(self.root)
+        frame_y.grid(row=0, column=0, padx=10, pady=10)
+
+        Label(frame_y, text="X (дата рождения):").grid(row=0, column=0)
+        self.entry_x = Entry(frame_y)
+        self.entry_x.grid(row=0, column=1)
+
+        Label(frame_y, text="D (месяц рождения):").grid(row=1, column=0)
+        self.entry_d = Entry(frame_y)
+        self.entry_d.grid(row=1, column=1)
+
+        Label(frame_y, text="W (день недели):").grid(row=2, column=0)
+        self.entry_w = Entry(frame_y)
+        self.entry_w.grid(row=2, column=1)
+
+        Button(frame_y, text="Рассчитать Y", command=self.calculate).grid(row=3, column=0, columnspan=2)
+        self.label_y_result = Label(frame_y, text="")
+        self.label_y_result.grid(row=4, column=0, columnspan=2)
+
+        frame_message = Frame(self.root)
+        frame_message.grid(row=1, column=0, padx=10, pady=10)
+
+        Label(frame_message, text="Сообщение:").grid(row=0, column=0)
+        self.text_message = Text(frame_message, height=4, width=40)
+        self.text_message.grid(row=0, column=1)
+
+        Label(frame_message, text="Ключ:").grid(row=1, column=0)
+        self.entry_key = Entry(frame_message)
+        self.entry_key.grid(row=1, column=1)
+
+        Button(frame_message, text="Шифровать и Подписать", command=self.process_message).grid(row=2, column=0, columnspan=2)
+
+        Label(frame_message, text="Зашифрованное сообщение:").grid(row=3, column=0)
+        self.text_encrypted = Text(frame_message, height=4, width=40)
+        self.text_encrypted.grid(row=3, column=1)
+
+        Label(frame_message, text="Подпись:").grid(row=4, column=0)
+        self.entry_signature = Entry(frame_message, width=50)
+        self.entry_signature.grid(row=4, column=1)
+
+        Button(frame_message, text="Проверить и Расшифровать", command=self.verify_and_decrypt).grid(row=5, column=0, columnspan=2)
+
+        Label(frame_message, text="Подтверждение подписи:").grid(row=6, column=0)
+        self.label_verification = Label(frame_message, text="")
+        self.label_verification.grid(row=6, column=1)
+
+        Label(frame_message, text="Расшифрованное сообщение:").grid(row=7, column=0)
+        self.text_decrypted = Text(frame_message, height=4, width=40)
+        self.text_decrypted.grid(row=7, column=1)
+
+if __name__ == "__main__":
     root = Tk()
-    root.title("ЭЦП и Шифрование")
-
-    # Ввод данных для расчёта Y
-    Label(root, text="X (дата рождения):").grid(row=0, column=0)
-    entry_x = Entry(root)
-    entry_x.grid(row=0, column=1)
-
-    Label(root, text="D (месяц рождения):").grid(row=1, column=0)
-    entry_d = Entry(root)
-    entry_d.grid(row=1, column=1)
-
-    Label(root, text="W (день недели):").grid(row=2, column=0)
-    entry_w = Entry(root)
-    entry_w.grid(row=2, column=1)
-
-    Button(root, text="Рассчитать Y", command=calculate).grid(row=3, column=0, columnspan=2)
-    label_y_result = Label(root, text="")
-    label_y_result.grid(row=4, column=0, columnspan=2)
-
-    # Поля для шифрования и подписи
-    Label(root, text="Сообщение:").grid(row=5, column=0)
-    text_message = Text(root, height=4, width=40)
-    text_message.grid(row=5, column=1)
-
-    Label(root, text="Ключ:").grid(row=6, column=0)
-    entry_key = Entry(root)
-    entry_key.grid(row=6, column=1)
-
-    Button(root, text="Шифровать и Подписать", command=process_message).grid(row=7, column=0, columnspan=2)
-
-    Label(root, text="Зашифрованное сообщение:").grid(row=8, column=0)
-    text_encrypted = Text(root, height=4, width=40)
-    text_encrypted.grid(row=8, column=1)
-
-    Label(root, text="Подпись:").grid(row=9, column=0)
-    entry_signature = Entry(root, width=50)
-    entry_signature.grid(row=9, column=1)
-
-    # Проверка подписи и расшифровка
-    Button(root, text="Проверить и Расшифровать", command=verify_and_decrypt).grid(row=10, column=0, columnspan=2)
-
-    Label(root, text="Подтверждение подписи:").grid(row=11, column=0)
-    label_verification = Label(root, text="")
-    label_verification.grid(row=11, column=1)
-
-    Label(root, text="Расшифрованное сообщение:").grid(row=12, column=0)
-    text_decrypted = Text(root, height=4, width=40)
-    text_decrypted.grid(row=12, column=1)
-
-    # Запуск окна
+    app = CryptoApp(root)
     root.mainloop()
 
 
-# Запуск приложения
-if __name__ == "__main__":
-    run_app()
