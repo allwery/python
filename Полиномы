@@ -1,0 +1,59 @@
+def text_to_numbers(text, table):
+    # Преобразование текста в числа согласно таблице
+    return [table[char] for char in text]
+
+def numbers_to_text(numbers, table_inv):
+    # Преобразование чисел обратно в текст
+    return ''.join([table_inv[num] for num in numbers if num in table_inv])
+
+def polynomial_encrypt(numbers, p, coefficients):
+    # Шифрование чисел с помощью полинома
+    encrypted_numbers = []
+    for x in numbers:
+        y = sum(coefficients[i] * (x ** (len(coefficients) - 1 - i)) for i in range(len(coefficients))) % p
+        encrypted_numbers.append(y)
+    return encrypted_numbers
+
+def polynomial_decrypt(encrypted_numbers, p, coefficients, table):
+    # Расшифрование чисел с помощью полинома (обратная операция не предусмотрена)
+    # В данном примере обратная операция не предусмотрена, так как полином является односторонней функцией
+    # Для демонстрации будем использовать те же коэффициенты и модуль
+    decrypted_numbers = []
+    for y in encrypted_numbers:
+        for x in range(p):
+            if sum(coefficients[i] * (x ** (len(coefficients) - 1 - i)) for i in range(len(coefficients))) % p == y:
+                decrypted_numbers.append(x)
+                break
+    return decrypted_numbers
+
+# Пример таблицы преобразования символов в числа
+table = {
+    'П': 16, 'Р': 17, 'И': 9, 'К': 11, 'А': 1, 'З': 8
+}
+
+# Обратная таблица
+table_inv = {v: k for k, v in table.items()}
+
+# Коэффициенты полинома (например, для полинома y = x^3 + 2x^2 + 3x + 4)
+coefficients = [4, 3, 2, 1]
+
+# Большое простое число
+p = 991
+
+# Открытый текст
+open_text = "ПРИКАЗ"
+
+# Преобразование текста в числа
+numbers = text_to_numbers(open_text, table)
+
+# Шифрование чисел с помощью полинома
+encrypted_numbers = polynomial_encrypt(numbers, p, coefficients)
+print("Шифртекст:", encrypted_numbers)
+
+# Расшифрование чисел с помощью полинома (обратная операция не предусмотрена)
+decrypted_numbers = polynomial_decrypt(encrypted_numbers, p, coefficients, table)
+print("Расшифрованные числа:", decrypted_numbers)
+
+# Преобразование чисел обратно в текст (для демонстрации)
+decrypted_text = numbers_to_text(decrypted_numbers, table_inv)
+print("Расшифрованный текст:", decrypted_text)
