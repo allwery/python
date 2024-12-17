@@ -1,0 +1,55 @@
+import numpy as np
+
+def text_to_vector(text, table):
+    # Преобразование текста в вектор чисел согласно таблице
+    vector = [table[char] for char in text]
+    return np.array(vector)
+
+def vector_to_text(vector, table_inv):
+    # Преобразование вектора чисел обратно в текст
+    text = ''.join([table_inv[int(round(num))] for num in vector])
+    return text
+
+def encrypt(text, matrix, table):
+    # Шифрование текста
+    vector = text_to_vector(text, table)
+    encrypted_vector = np.dot(matrix, vector)
+    return encrypted_vector
+
+def decrypt(encrypted_vector, matrix_inv, table_inv):
+    # Расшифрование текста
+    decrypted_vector = np.dot(matrix_inv, encrypted_vector)
+    text = vector_to_text(decrypted_vector, table_inv)
+    return text
+
+# Пример таблицы преобразования символов в числа
+table = {
+    'П': 16, 'Р': 17, 'И': 9, 'К': 11, 'А': 1, 'З': 8
+}
+
+# Обратная таблица
+table_inv = {v: k for k, v in table.items()}
+
+# Матрица C размерности 6x6
+matrix_C = np.array([
+    [13.2, 13.3, 13.2, 0, 0, 0],
+    [21.5, 21.5, 17.0, 0, 0, 0],
+    [32.1, 32.1, 17.0, 0, 0, 0],
+    [0, 0, 0, 13.2, 13.3, 13.2],
+    [0, 0, 0, 21.5, 21.5, 17.0],
+    [0, 0, 0, 32.1, 32.1, 17.0]
+])
+
+# Обратная матрица C (для расшифрования)
+matrix_C_inv = np.linalg.inv(matrix_C)
+
+# Открытый текст
+open_text = "ПРИКАЗ"
+
+# Шифрование
+encrypted_vector = encrypt(open_text, matrix_C, table)
+print("Шифртекст:", encrypted_vector)
+
+# Расшифрование
+decrypted_text = decrypt(encrypted_vector, matrix_C_inv, table_inv)
+print("Расшифрованный текст:", decrypted_text)
