@@ -1,95 +1,142 @@
 import tkinter as tk
+from tkinter import messagebox
+import base64
 
 class MICKEY:
     def __init__(self, key, iv):
-        self.R = self.initialize_register(key, 16)
-        self.S = self.initialize_register(iv, 16)
-        self.key_stream = []
+        self.R = [int(b) for b in f"{key:08b}"]  # Ключ
+        self.S = [int(b) for b in f"{iv:08b}"]   # Вектор инициализации (8 бит)
+        self.key_stream = []  # Для сохранения ключевого потока
 
-    def initialize_register(self, value, size):
-        # Инициализация регистра сдвига с обратной связью (LFSR)
-        return [int(bit) for bit in '{:0{size}b}'.format(value, size=size)]
+    def clock(self):
+        """Один такт работы генератора"""
+        # Нерегулярное тактирование
+        if self.S[0]:  # S управляет R
+            # Нелинейная обратная связь для R
+            feedback_R = self.R[0] ^ (self.R[2] & self.R[4]) ^ self.R[7]
+            self.R = [feedback_R] + self.R[:-1]
 
-    def clock_register(self, register):
-        # Функция тактирования регистра
-        feedback = register[0] ^ register[4]
-        return [feedback] + register[:-1]
+        if self.R[0]:  # R управляет S
+            # Нелинейная обратная связь для S
+            feedback_S = self.S[0] ^ (self.S[1] | self.S[3]) ^ self.S[6]
+            self.S = [feedback_S] + self.S[:-1]
 
-    def generate_key_stream(self, length):
-        # Генерация ключевого потока
-        self.key_stream = []
-        for _ in range(length):
-            # Тактирование регистров на каждом шаге
-            self.R = self.clock_register(self.R)
-            self.S = self.clock_register(self.S)
-            # Генерация бита ключевого потока
-            key_bit = self.R[-1] ^ self.S[-1]
-            self.key_stream.append(key_bit)
+    def get_bit(self):
+        """Генерация одного бита ключевого потока"""
+        return self.R[5] ^ self.S[2]  # Простая комбинация битов
 
-    def encrypt(self, message):
-        binary_message = ''.join(format(ord(char), '08b') for char in message)
-        self.generate_key_stream(len(binary_message))
-        encrypted_binary = ''.join(str(int(bit) ^ key_bit) for bit, key_bit in zip(binary_message, self.key_stream))
-        return ''.join(chr(int(encrypted_binary[i:i+8], 2)) for i in range(0, len(encrypted_binary), 8))
-
-    def decrypt(self, encrypted_message):
-        return self.encrypt(encrypted_message)  # Дешифрование аналогично шифрованию
+    def encrypt_decrypt(self, data):
+        """Шифрование/дешифрование (XOR с ключевым потоком)"""
+        self.key_stream = []  # Сброс ключевого потока
+        result = []
+        for byte in data:
+            bits = [int(b) for b in f"{byte:08b}"]
+            encrypted_bits = []
+            for bit in bits:
+                self.clock()  # Обновляем регистры на каждом бите
+                key_bit = self.get_bit()
+                encrypted_bits.append(bit ^ key_bit)
+                self.key_stream.append(key_bit)  # Сохраняем бит потока
+            result.append(int(''.join(map(str, encrypted_bits)), 2))
+        return bytes(result)
 
 class CryptoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("MICKEY Шифрование")
+        self.mickey = None  # Для сохранения состояния генератора
+        self.key_stream = []  # Для отладки ключевого потока
         self.create_widgets()
 
-    def process_message(self):
-        message = self.text_message.get("1.0", tk.END).strip()
-        key = int(self.entry_key.get())
-        iv = int(self.entry_iv.get())
-        mickey = MICKEY(key, iv)
-        encrypted = mickey.encrypt(message)
-        self.text_encrypted.delete("1.0", tk.END)
-        self.text_encrypted.insert(tk.END, encrypted)
-        print(f"Original Message: {message}")
-        print(f"Encrypted Message: {encrypted}")
-        print(f"Key Stream: {mickey.key_stream[:20]}")  # Выводим первые 20 бит ключевого потока
-
-    def verify_and_decrypt(self):
-        encrypted = self.text_encrypted.get("1.0", tk.END).strip()
-        key = int(self.entry_key.get())
-        iv = int(self.entry_iv.get())
-        mickey = MICKEY(key, iv)
-        decrypted = mickey.decrypt(encrypted)
-        self.text_decrypted.delete("1.0", tk.END)
-        self.text_decrypted.insert(tk.END, decrypted)
-        print(f"Decrypted Message: {decrypted}")
-
     def create_widgets(self):
-        frame_message = tk.Frame(self.root)
-        frame_message.grid(row=0, column=0, padx=10, pady=10)
+        # Основной контейнер
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack()
 
-        tk.Label(frame_message, text="Сообщение:").grid(row=0, column=0)
-        self.text_message = tk.Text(frame_message, height=4, width=40)
-        self.text_message.grid(row=0, column=1)
+        # Поле для ввода сообщения
+        self.text_message = tk.Text(frame, height=5, width=40)
+        self.text_message.grid(row=0, column=0, columnspan=2, pady=(0, 10))
+        self.text_message.insert(tk.END, "Введите текст здесь")
 
-        tk.Label(frame_message, text="Ключ:").grid(row=1, column=0)
-        self.entry_key = tk.Entry(frame_message)
+        # Поля для ключа и IV
+        tk.Label(frame, text="Ключ (0-255):").grid(row=1, column=0)
+        self.entry_key = tk.Entry(frame)
         self.entry_key.grid(row=1, column=1)
 
-        tk.Label(frame_message, text="IV:").grid(row=2, column=0)
-        self.entry_iv = tk.Entry(frame_message)
+        tk.Label(frame, text="IV (0-255):").grid(row=2, column=0)
+        self.entry_iv = tk.Entry(frame)
         self.entry_iv.grid(row=2, column=1)
 
-        tk.Button(frame_message, text="Шифровать", command=self.process_message).grid(row=3, column=0, columnspan=2)
+        # Кнопки управления
+        tk.Button(frame, text="Шифровать", command=self.encrypt_message, width=20).grid(row=3, column=0, pady=10)
+        tk.Button(frame, text="Расшифровать", command=self.decrypt_message, width=20).grid(row=3, column=1, pady=10)
 
-        tk.Label(frame_message, text="Зашифрованное сообщение:").grid(row=4, column=0)
-        self.text_encrypted = tk.Text(frame_message, height=4, width=40)
-        self.text_encrypted.grid(row=4, column=1)
+        # Результаты
+        self.text_encrypted = tk.Text(frame, height=5, width=40)
+        self.text_encrypted.grid(row=4, column=0, columnspan=2, pady=(10, 0))
+        self.text_encrypted.insert(tk.END, "Зашифрованный текст")
 
-        tk.Button(frame_message, text="Расшифровать", command=self.verify_and_decrypt).grid(row=5, column=0, columnspan=2)
+        self.text_decrypted = tk.Text(frame, height=5, width=40)
+        self.text_decrypted.grid(row=5, column=0, columnspan=2, pady=(10, 0))
+        self.text_decrypted.insert(tk.END, "Расшифрованный текст")
 
-        tk.Label(frame_message, text="Расшифрованное сообщение:").grid(row=6, column=0)
-        self.text_decrypted = tk.Text(frame_message, height=4, width=40)
-        self.text_decrypted.grid(row=6, column=1)
+    def get_inputs(self):
+        """Получение и валидация входных данных"""
+        try:
+            message = self.text_message.get("1.0", tk.END).strip()
+            key = int(self.entry_key.get())
+            iv = int(self.entry_iv.get())
+
+            if not (0 <= key <= 255):
+                raise ValueError("Ключ должен быть 8-битным (0-255)")
+            if not (0 <= iv <= 255):
+                raise ValueError("IV должен быть 8-битным (0-255)")
+
+            return message, key, iv
+        except Exception as e:
+            messagebox.showerror("Ошибка ввода", str(e))
+            return None, None, None
+
+    def encrypt_message(self):
+        """Обработчик шифрования"""
+        message, key, iv = self.get_inputs()
+        if message is None:
+            return
+
+        try:
+            self.mickey = MICKEY(key, iv)
+            encrypted = self.mickey.encrypt_decrypt(message.encode('utf-8'))
+
+            # Отображаем в Base64 для удобства
+            encrypted_b64 = base64.b64encode(encrypted).decode('utf-8')
+            self.text_encrypted.delete("1.0", tk.END)
+            self.text_encrypted.insert(tk.END, encrypted_b64)
+
+            # Сохраняем ключевой поток для отладки
+            self.key_stream = self.mickey.key_stream
+            print(f"Первые 20 бит ключевого потока: {self.key_stream[:20]}")
+
+        except Exception as e:
+            messagebox.showerror("Ошибка шифрования", str(e))
+
+    def decrypt_message(self):
+        """Обработчик расшифрования"""
+        if not self.mickey:
+            messagebox.showerror("Ошибка", "Сначала выполните шифрование!")
+            return
+
+        try:
+            encrypted_b64 = self.text_encrypted.get("1.0", tk.END).strip()
+            encrypted = base64.b64decode(encrypted_b64.encode('utf-8'))
+
+            # Используем тот же экземпляр MICKEY для сохранения состояния
+            decrypted = self.mickey.encrypt_decrypt(encrypted).decode('utf-8')
+
+            self.text_decrypted.delete("1.0", tk.END)
+            self.text_decrypted.insert(tk.END, decrypted)
+
+        except Exception as e:
+            messagebox.showerror("Ошибка расшифрования", str(e))
 
 if __name__ == "__main__":
     root = tk.Tk()
